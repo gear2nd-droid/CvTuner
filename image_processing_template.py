@@ -9,7 +9,7 @@ def init_parameter():
     # The key and value of the parameter are both strings.
     return prm
 
-def image_process(image_dic, prm):
+def image_process(image_dic, prm, filename):
         
     # result
     # Store the result in Dictionary.

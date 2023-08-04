@@ -290,7 +290,7 @@ class App(QMainWindow):
         
         # image_process
         importlib.reload(prcs)
-        ret = prcs.image_process(self.image_dic, prm)
+        ret = prcs.image_process(self.image_dic, prm, filename)
         self.image_dic = ret[0]
         result = ret[1]
         self.draw_object()
@@ -322,7 +322,6 @@ class App(QMainWindow):
             keys.append(key)
         # draw file
         key = keys[self.patern_idx]
-        print(key)
         img = self.image_dic[key]
         ret = img.shape
         image_height = ret[0]
@@ -334,10 +333,16 @@ class App(QMainWindow):
         fval = min(self.view_width / image_width, self.view_height / image_height)
         # image edit
         draw_img = cv2.resize(img, dsize=None, fx = fval, fy = fval)
+        image_width = math.floor(image_width * fval)
+        image_height = math.floor(image_height * fval)
         if self.channel == 3:
-            image = QtGui.QImage(draw_img, self.view_width, self.view_height, QImage.Format_BGR888)
+            image = QtGui.QImage(draw_img, image_width, image_height, QImage.Format_BGR888)
         elif self.channel ==1:
-            image = QtGui.QImage(draw_img, self.view_width, self.view_height, QImage.Format_Grayscale8)
+            image = QtGui.QImage(draw_img, image_width, image_height, QImage.Format_Grayscale8)
+        elif self.channel == 4:
+            image = QtGui.QImage(draw_img, image_width, image_height, QImage.Format_BGRA8888)
+        else:
+            image = QtGui.QImage(draw_img, image_width, image_height, QImage.Format_BGR888)
         # scene
         scene = QtWidgets.QGraphicsScene()
         pixmap = QtGui.QPixmap.fromImage(image)
@@ -347,7 +352,6 @@ class App(QMainWindow):
         return img
         
     def draw_histgram(self):
-        print('abc')
         color = ["b", "g", "r"]
         x = range(256)
         self.histgram_axis.cla()
