@@ -1,3 +1,12 @@
+'''
+CvTuner ver 0.0.1
+License: GPL3
+Author: gear
+twitter(X): @_gear_geek_
+Usage: 
+- GitHub Repository: https://github.com/gear2nd-droid/CvTuner
+'''
+
 import sys
 import os
 import platform
@@ -19,13 +28,52 @@ try:
     import __builtin__
 except ImportError:
     import builtins as __builtin__
+    
+VERSION_TEXT = '''
+CvTuner ver 0.0.1
+Author: gear (@_gear_geek_)
+'''
+    
+class GraphicsSceneCustom(QtWidgets.QGraphicsScene):
+    def __init__(self, image, fval, parent=None, window=None):
+        QGraphicsScene.__init__(self, parent)
+        self.parent = parent
+        self.window = window
+        self.image = image
+        self.fval = fval
+        
+    def mousePressEvent(self, event):
+        pos = event.scenePos()
+        x = int(pos.x())
+        y = int(pos.y())
+        ret = self.image.shape
+        image_height = ret[0]
+        image_width = ret[1]
+        if len(ret) == 2:
+            channel = 1
+        else:
+            channel = ret[2]        
+        if 0 <= x and x < image_width and 0 <= y and y < image_height:
+            if channel == 1:
+                text = '{0}'.format(self.image[y][x])
+            elif channel == 2:
+                text = '{0}, {1}'.format(self.image[y][x][0], self.image[y][x][1])
+            elif channel == 3:
+                text = '{0}, {1}, {2}'.format(self.image[y][x][0], self.image[y][x][1], self.image[y][x][2])
+            elif channel == 4:
+                text = '{0}, {1}, {2}, {3}'.format(self.image[y][x][0], self.image[y][x][1], self.image[y][x][2], self.image[y][x][3])
+            msg = QMessageBox()
+            msg.setWindowTitle('Color pick')
+            posx = math.floor(x / self.fval)
+            posy = math.floor(y / self.fval)
+            msg.setText('PosX:{0}, PosY:{1}\nPixel:{2}'.format(posx, posy, text))
+            msg.exec_()
 
 class MainWindow(QMainWindow):
-    message_console = None
-    
     def __init__(self):
         super().__init__()
         self.title = 'CvTuner'
+        self.dir_path = ''
         self.left = 0
         self.top = 75
         self.width = 1280
@@ -73,10 +121,13 @@ class MainWindow(QMainWindow):
         self.menubar = QMenuBar(self)
         self.setMenuBar(self.menubar)
         self.file_menu = self.menubar.addMenu('File')
+        self.help_menu = self.menubar.addMenu('Help')
         # menu:folder
         action_menu_folder_open = QAction('Folder open', self)
         action_menu_folder_open.triggered.connect(self.menu_folder_open)
         self.file_menu.addAction(action_menu_folder_open)
+        # separator
+        self.file_menu.addSeparator()
         # menu:script
         action_menu_script_open = QAction('Script open', self)
         action_menu_script_open.triggered.connect(self.menu_script_open)
@@ -87,6 +138,10 @@ class MainWindow(QMainWindow):
         action_menu_script_reload = QAction('Script reload', self)
         action_menu_script_reload.triggered.connect(self.menu_script_reload)
         self.file_menu.addAction(action_menu_script_reload)
+        # version
+        action_menu_version = QAction('Version', self)
+        action_menu_version.triggered.connect(self.menu_version_dialog)
+        self.help_menu.addAction(action_menu_version)
         
         # splitter
         self.splitter = QSplitter()
@@ -144,7 +199,13 @@ class MainWindow(QMainWindow):
 
     def central_panel_setting(self, MainWindow):
         self.comboBox = QComboBox(MainWindow)
-        self.filename = QLabel(MainWindow)
+        self.number_edit = QTextEdit(MainWindow)
+        self.number_edit.setMinimumSize(50, 20)
+        self.number_edit.setMaximumSize(50, 30)
+        self.number_label = QLabel(MainWindow)
+        self.number_label.setMinimumSize(50, 20)
+        self.number_label.setMaximumSize(50, 30)
+        self.filename_label = QLabel(MainWindow)
         self.start_button = QtWidgets.QToolButton(MainWindow)
         self.left_button = QtWidgets.QToolButton(MainWindow)
         self.right_button = QtWidgets.QToolButton(MainWindow)
@@ -206,11 +267,13 @@ class MainWindow(QMainWindow):
         self.histgram_layout_h.addLayout(self.histgram_layout_v)        
         
         self.tool_layout = QHBoxLayout()
+        self.tool_layout.addWidget(self.number_edit)
+        self.tool_layout.addWidget(self.number_label)
         self.tool_layout.addWidget(self.start_button)
         self.tool_layout.addWidget(self.left_button)
         self.tool_layout.addWidget(self.right_button)
         self.tool_layout.addWidget(self.end_button)
-        self.tool_layout.addWidget(self.filename)
+        self.tool_layout.addWidget(self.filename_label)
         self.tool_layout.addWidget(self.comboBox)
 
         self.graphic_seg_layout =  QVBoxLayout()
@@ -273,6 +336,7 @@ class MainWindow(QMainWindow):
         self.histgram_ymaxvalue.textChanged.connect(self.changed_ymax)
         self.histgram_yminvalue.textChanged.connect(self.changed_ymin)
         self.message_console.textChanged.connect(self.message_append)
+        self.number_edit.textChanged.connect(self.changed_number)
         
     def print_console(self, message):
         __builtin__.print(message)
@@ -285,8 +349,9 @@ class MainWindow(QMainWindow):
     def execute(self):
         fullpath = self.file_list[self.file_idx]
         filename = os.path.basename(fullpath)
-        text = '{0}/{1} : {2}'.format(self.file_idx + 1, len(self.file_list), filename)
-        self.filename.setText(text)
+        self.filename_label.setText(filename)
+        self.number_edit.setText(str(self.file_idx + 1))
+        self.number_label.setText('/{0}'.format(len(self.file_list)))
         
         # init param
         prm = {}
@@ -320,7 +385,6 @@ class MainWindow(QMainWindow):
         for i in range(self.comboBox.count()):
             self.comboBox.removeItem(0)
         self.comboBox.addItems(keys)
-        
         # renew
         self.comboBox.setCurrentIndex(self.patern_idx)
         self.img = self.draw_image()
@@ -356,10 +420,10 @@ class MainWindow(QMainWindow):
         else:
             image = QtGui.QImage(draw_img, image_width, image_height, QImage.Format_BGR888)
         # scene
-        scene = QtWidgets.QGraphicsScene()
         pixmap = QtGui.QPixmap.fromImage(image)
-        scene.addPixmap(pixmap)
-        self.graphicsView.setScene(scene)
+        self.graphics_scene = GraphicsSceneCustom(draw_img, fval)
+        self.graphics_scene.addPixmap(pixmap)
+        self.graphicsView.setScene(self.graphics_scene)
         self.graphicsView.show()
         return img
         
@@ -384,9 +448,12 @@ class MainWindow(QMainWindow):
             
     def menu_folder_open(self):
         self.dir_path = QFileDialog.getExistingDirectory(self, 'Open Folder', os.path.expanduser('~'))
-        self.file_list = glob.glob(self.dir_path + r'/*.*')
-        self.file_idx = 0
-        self.execute()      
+        if len(self.dir_path) > 0:
+            self.file_list = glob.glob(self.dir_path + r'/*.*')
+            self.file_idx = 0
+            title = 'CvTuner - SCRIPT: {0} , FOLDER: {1}'.format(self.script_path, self.dir_path)
+            self.setWindowTitle(title)
+            self.execute()
         
     def menu_script_open(self):
         dir = os.path.expanduser('~')
@@ -396,7 +463,11 @@ class MainWindow(QMainWindow):
         ret = QFileDialog.getOpenFileName(self, 'Open Script', dir, filters, selected_filter, options)
         self.script_path = ret[0]
         selectedFilter = ret[1]
-        self.title = 'CvTuner : {0}'.format(self.script_path)
+        if self.dir_path == '':
+            title = 'CvTuner - SCRIPT: {0}'.format(self.script_path)
+        else:
+            title = 'CvTuner - SCRIPT: {0} , FOLDER: {1}'.format(self.script_path, self.dir_path)
+        self.setWindowTitle(title)
         # copy
         self.menu_script_reload()
         
@@ -498,6 +569,22 @@ class MainWindow(QMainWindow):
             self.draw_histgram()
         except:
             pass
+            
+    def changed_number(self):
+        try:
+            buf = int(self.number_edit.toPlainText())
+            if 1 <= buf and buf <= len(self.file_list):
+                if self.file_idx != buf - 1:
+                    self.file_idx = buf - 1
+                    self.execute()
+        except:
+            pass
+            
+    def menu_version_dialog(self):
+        msg = QMessageBox()
+        msg.setWindowTitle('Version')
+        msg.setText(VERSION_TEXT)
+        msg.exec_()
 
 class ExeThread(QThread):
     def __init__(self, obj):
