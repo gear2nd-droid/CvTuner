@@ -15,17 +15,17 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-import drawnow
+#from utility import *
 
-try:
-    import __builtin__
-except ImportError:
-    import builtins as __builtin__
+# try:
+    # import __builtin__
+# except ImportError:
+    # import builtins as __builtin__
 
 class App(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.title = "CvTool"
+        self.title = 'CvTuner'
         self.left = 0
         self.top = 75
         self.width = 1280
@@ -84,6 +84,9 @@ class App(QMainWindow):
         action_menu_script_save = QAction('Script save', self)
         action_menu_script_save.triggered.connect(self.menu_script_save)
         self.file_menu.addAction(action_menu_script_save)
+        action_menu_script_reload = QAction('Script reload', self)
+        action_menu_script_reload.triggered.connect(self.menu_script_reload)
+        self.file_menu.addAction(action_menu_script_reload)
         
         # splitter
         self.splitter = QSplitter()
@@ -273,7 +276,7 @@ class App(QMainWindow):
     def execute(self):
         fullpath = self.file_list[self.file_idx]
         filename = os.path.basename(fullpath)
-        text = '{0}/{1}:{2}'.format(self.file_idx + 1, len(self.file_list), filename)
+        text = '{0}/{1} : {2}'.format(self.file_idx + 1, len(self.file_list), filename)
         self.filename.setText(text)
         
         # init param
@@ -384,19 +387,9 @@ class App(QMainWindow):
         ret = QFileDialog.getOpenFileName(self, 'Open Script', dir, filters, selected_filter, options)
         self.script_path = ret[0]
         selectedFilter = ret[1]
+        self.title = 'CvTuner : {0}'.format(self.script_path)
         # copy
-        f = open(self.script_path, 'r')
-        alltext = f.read()
-        f.close()
-        self.editor.setPlainText(alltext)
-        # init param
-        importlib.reload(prcs)
-        prm = prcs.init_parameter()
-        keys = prm.keys()
-        self.table_param.setRowCount(len(keys))
-        for i, key in enumerate(keys):
-            self.table_param.setItem(i, 0, QTableWidgetItem(key))
-            self.table_param.setItem(i, 1, QTableWidgetItem(prm[key]))
+        self.menu_script_reload()
         
     def menu_script_save(self):
         alltext = self.editor.toPlainText()
@@ -408,6 +401,21 @@ class App(QMainWindow):
         f = open('image_processing.py', 'w')
         f.write(alltext)
         f.close()
+        
+    def menu_script_reload(self):
+        f = open(self.script_path, 'r')
+        alltext = f.read()
+        f.close()
+        self.editor.setPlainText(alltext)
+        self.menu_script_save()
+        # init param
+        importlib.reload(prcs)
+        prm = prcs.init_parameter()
+        keys = prm.keys()
+        self.table_param.setRowCount(len(keys))
+        for i, key in enumerate(keys):
+            self.table_param.setItem(i, 0, QTableWidgetItem(key))
+            self.table_param.setItem(i, 1, QTableWidgetItem(prm[key]))
         
     def start_button_pressed(self):
         self.file_idx = 0
@@ -494,14 +502,14 @@ class ExeThread(QThread):
             if self.obj.file_idx == len(self.obj.file_list) - 1:
                 break
                 
-def print(message):
-   global ex
-   __builtin__.print(message)
-   if hasattr(ex, 'message_console'):
-       ex.message_console.append(message)
-       ex.message_console.moveCursor(QTextCursor.End)
+# def print(message):
+   # global ex
+   # __builtin__.print(message)
+   # if hasattr(ex, 'message_console'):
+       # ex.message_console.append(message)
+       # ex.message_console.moveCursor(QTextCursor.End)
 
-global ex, app
+# global ex, app
 if __name__ == "__main__":
     global ex
     app = QApplication(sys.argv)
