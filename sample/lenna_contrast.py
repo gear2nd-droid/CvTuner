@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 import math
 
-def init_parameter():
+# console
+# You can output a message to the console with "console.append(message)".
+
+def init_parameter(console):
     prm = {}
     # Parameters can be set in Dictionary.
     # The set parameters are read into the parameter list.
@@ -11,15 +14,13 @@ def init_parameter():
     prm['scurve'] = '0.05'
     return prm
 
-def image_process(image_dic, prm, filename):
-        
+def image_process(image_dic, prm, filename, console):
     # result
     # Store the result in Dictionary.
     # The result is read into the result list.
     # The key and value of the result are both strings.
     result = {}
-    
-    print(filename)
+    console.append(filename)
     
     # image dictionary
     # The loaded image is stored in image_dic['original'].

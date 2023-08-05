@@ -2,7 +2,10 @@ import cv2
 import numpy as np
 import math
 
-def init_parameter():
+# console
+# You can output a message to the console with "console.append(message)".
+
+def init_parameter(console):
     prm = {}
     # Parameters can be set in Dictionary.
     # The set parameters are read into the parameter list.
@@ -11,14 +14,13 @@ def init_parameter():
     prm['hsv_max'] = '120,360,360'
     return prm
 
-def image_process(image_dic, prm, filename):
+def image_process(image_dic, prm, filename, console):
     # result
     # Store the result in Dictionary.
     # The result is read into the result list.
     # The key and value of the result are both strings.
     result = {}
-    
-    print(filename)
+    console.append(filename)
     
     # image dictionary
     # The loaded image is stored in image_dic['original'].
@@ -51,7 +53,7 @@ def image_process(image_dic, prm, filename):
     result['contours_cnt'] = str(len(contours))
     for i, cnt in enumerate(contours):
         x, y, w, h = cv2.boundingRect(cnt)
-        print('x:{0},y:{1},w:{2},h:{3}'.format(x, y, w, h))
+        console.append('x:{0},y:{1},w:{2},h:{3}'.format(x, y, w, h))
         cx = x + w / 2.0
         cy = y + h / 2.0
         key = 'cnt_{0}'.format(i)

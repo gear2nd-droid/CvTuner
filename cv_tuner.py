@@ -15,14 +15,14 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-#from utility import *
+try:
+    import __builtin__
+except ImportError:
+    import builtins as __builtin__
 
-# try:
-    # import __builtin__
-# except ImportError:
-    # import builtins as __builtin__
-
-class App(QMainWindow):
+class MainWindow(QMainWindow):
+    message_console = None
+    
     def __init__(self):
         super().__init__()
         self.title = 'CvTuner'
@@ -39,7 +39,7 @@ class App(QMainWindow):
         self.editor.setPlainText(alltext)
         # init param
         importlib.reload(prcs)
-        prm = prcs.init_parameter()
+        prm = prcs.init_parameter(self.message_console)
         keys = prm.keys()
         self.table_param.setRowCount(len(keys))
         for i, key in enumerate(keys):
@@ -124,7 +124,7 @@ class App(QMainWindow):
         self.patern_idx = 0
 
     def left_panel_setting(self,MainWindow):
-        
+        global message_console
         self.editor = QPlainTextEdit(MainWindow)
 
         self.message_console = QtWidgets.QTextEdit(MainWindow)
@@ -272,6 +272,15 @@ class App(QMainWindow):
         self.histgram_xminvalue.textChanged.connect(self.changed_xmin)
         self.histgram_ymaxvalue.textChanged.connect(self.changed_ymax)
         self.histgram_yminvalue.textChanged.connect(self.changed_ymin)
+        self.message_console.textChanged.connect(self.message_append)
+        
+    def print_console(self, message):
+        __builtin__.print(message)
+        self.message_console.setTextColor(QColor('#ffffff'))
+        self.message_console.append(message)   
+
+    def message_append(self):
+        self.message_console.moveCursor(QTextCursor.End)  
         
     def execute(self):
         fullpath = self.file_list[self.file_idx]
@@ -293,7 +302,7 @@ class App(QMainWindow):
         
         # image_process
         importlib.reload(prcs)
-        ret = prcs.image_process(self.image_dic, prm, filename)
+        ret = prcs.image_process(self.image_dic, prm, filename, self.message_console)
         self.image_dic = ret[0]
         result = ret[1]
         self.draw_object()
@@ -410,7 +419,7 @@ class App(QMainWindow):
         self.menu_script_save()
         # init param
         importlib.reload(prcs)
-        prm = prcs.init_parameter()
+        prm = prcs.init_parameter(self.message_console)
         keys = prm.keys()
         self.table_param.setRowCount(len(keys))
         for i, key in enumerate(keys):
@@ -502,16 +511,8 @@ class ExeThread(QThread):
             if self.obj.file_idx == len(self.obj.file_list) - 1:
                 break
                 
-# def print(message):
-   # global ex
-   # __builtin__.print(message)
-   # if hasattr(ex, 'message_console'):
-       # ex.message_console.append(message)
-       # ex.message_console.moveCursor(QTextCursor.End)
-
-# global ex, app
 if __name__ == "__main__":
-    global ex
+    global app, main_window
     app = QApplication(sys.argv)
-    ex = App()
+    main_window = MainWindow()
     sys.exit(app.exec_())
