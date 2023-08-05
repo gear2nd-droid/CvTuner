@@ -1,9 +1,9 @@
 # CvTuner ver 0.0.1
-# License: GPL3
-# Author: gear
-# twitter(X): @_gear_geek_
-# Usage: 
-# - GitHub Repository: https://github.com/gear2nd-droid/CvTuner
+#   License: GPL3
+#   Author: gear
+#   twitter(X): @_gear_geek_
+#   Usage: 
+#   - GitHub Repository: https://github.com/gear2nd-droid/CvTuner
 
 import sys
 import os
@@ -14,6 +14,7 @@ import math
 import importlib
 import time
 import threading
+import traceback
 import image_processing as prcs
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import *
@@ -119,6 +120,7 @@ class MainWindow(QMainWindow):
         self.menubar = QMenuBar(self)
         self.setMenuBar(self.menubar)
         self.file_menu = self.menubar.addMenu('File')
+        self.tool_menu = self.menubar.addMenu('Tool')
         self.help_menu = self.menubar.addMenu('Help')
         # menu:folder
         action_menu_folder_open = QAction('Folder open', self)
@@ -140,6 +142,13 @@ class MainWindow(QMainWindow):
         action_menu_version = QAction('Version', self)
         action_menu_version.triggered.connect(self.menu_version_dialog)
         self.help_menu.addAction(action_menu_version)
+        # tool
+        action_menu_select_image = QAction('Select image', self)
+        action_menu_select_image.triggered.connect(self.menu_select_image_dialog)
+        self.tool_menu.addAction(action_menu_select_image)
+        action_menu_wait_time = QAction('Ser wait time', self)
+        action_menu_wait_time.triggered.connect(self.menu_wait_time_dialog)
+        self.tool_menu.addAction(action_menu_wait_time)
         
         # splitter
         self.splitter = QSplitter()
@@ -175,6 +184,8 @@ class MainWindow(QMainWindow):
         
         # parameter
         self.patern_idx = 0
+        self.executing = False
+        self.wait_time = 1
 
     def left_panel_setting(self,MainWindow):
         global message_console
@@ -197,9 +208,6 @@ class MainWindow(QMainWindow):
 
     def central_panel_setting(self, MainWindow):
         self.comboBox = QComboBox(MainWindow)
-        self.number_edit = QTextEdit(MainWindow)
-        self.number_edit.setMinimumSize(50, 20)
-        self.number_edit.setMaximumSize(50, 30)
         self.number_label = QLabel(MainWindow)
         self.number_label.setMinimumSize(50, 20)
         self.number_label.setMaximumSize(50, 30)
@@ -265,7 +273,6 @@ class MainWindow(QMainWindow):
         self.histgram_layout_h.addLayout(self.histgram_layout_v)        
         
         self.tool_layout = QHBoxLayout()
-        self.tool_layout.addWidget(self.number_edit)
         self.tool_layout.addWidget(self.number_label)
         self.tool_layout.addWidget(self.start_button)
         self.tool_layout.addWidget(self.left_button)
@@ -334,7 +341,6 @@ class MainWindow(QMainWindow):
         self.histgram_ymaxvalue.textChanged.connect(self.changed_ymax)
         self.histgram_yminvalue.textChanged.connect(self.changed_ymin)
         self.message_console.textChanged.connect(self.message_append)
-        self.number_edit.textChanged.connect(self.changed_number)
         
     def print_console(self, message):
         __builtin__.print(message)
@@ -348,8 +354,7 @@ class MainWindow(QMainWindow):
         fullpath = self.file_list[self.file_idx]
         filename = os.path.basename(fullpath)
         self.filename_label.setText(filename)
-        self.number_edit.setText(str(self.file_idx + 1))
-        self.number_label.setText('/{0}'.format(len(self.file_list)))
+        self.number_label.setText('{0}/{1}'.format(self.file_idx + 1, len(self.file_list)))
         
         # init param
         prm = {}
@@ -405,10 +410,10 @@ class MainWindow(QMainWindow):
         else:
             self.channel = ret[2]
         fval = min(self.view_width / image_width, self.view_height / image_height)
-        # image edit
         draw_img = cv2.resize(img, dsize=None, fx = fval, fy = fval)
-        image_width = math.floor(image_width * fval)
-        image_height = math.floor(image_height * fval)
+        ret = draw_img.shape
+        image_height = ret[0]
+        image_width = ret[1]
         if self.channel == 3:
             image = QtGui.QImage(draw_img, image_width, image_height, QImage.Format_BGR888)
         elif self.channel ==1:
@@ -568,21 +573,23 @@ class MainWindow(QMainWindow):
         except:
             pass
             
-    def changed_number(self):
-        try:
-            buf = int(self.number_edit.toPlainText())
-            if 1 <= buf and buf <= len(self.file_list):
-                if self.file_idx != buf - 1:
-                    self.file_idx = buf - 1
-                    self.execute()
-        except:
-            pass
-            
     def menu_version_dialog(self):
         msg = QMessageBox()
         msg.setWindowTitle('Version')
         msg.setText(VERSION_TEXT)
         msg.exec_()
+        
+    def menu_select_image_dialog(self):
+        val, pressed = QInputDialog.getInt(self, 'Select image number', 'number', self.file_idx + 1, 1, len(self.file_list), 1)
+        if pressed:
+            if 1 <= val and val <= len(self.file_list):
+                self.file_idx = val - 1
+                self.execute()
+        
+    def menu_wait_time_dialog(self):
+        val, pressed = QInputDialog.getInt(self, 'Auto executint wait time', 'second', self.wait_time, 0, 60, 1)
+        if pressed:
+            self.wait_time = val
 
 class ExeThread(QThread):
     def __init__(self, obj):
@@ -592,8 +599,9 @@ class ExeThread(QThread):
     def run(self):
         while(self.obj.executing):
             self.obj.right_button_pressed()
-            #time.sleep(1)
+            time.sleep(self.obj.wait_time)
             if self.obj.file_idx == len(self.obj.file_list) - 1:
+                self.obj.executing = False
                 break
                 
 if __name__ == "__main__":
