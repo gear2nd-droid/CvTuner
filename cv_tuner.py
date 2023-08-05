@@ -1,11 +1,9 @@
-'''
-CvTuner ver 0.0.1
-License: GPL3
-Author: gear
-twitter(X): @_gear_geek_
-Usage: 
-- GitHub Repository: https://github.com/gear2nd-droid/CvTuner
-'''
+# CvTuner ver 0.0.1
+# License: GPL3
+# Author: gear
+# twitter(X): @_gear_geek_
+# Usage: 
+# - GitHub Repository: https://github.com/gear2nd-droid/CvTuner
 
 import sys
 import os
